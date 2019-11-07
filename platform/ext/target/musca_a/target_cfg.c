@@ -165,6 +165,10 @@ void nvic_interrupt_target_state_cfg()
         NVIC->ITNS[i] = 0xFFFFFFFF;
     }
 
+    /* Target GPIO interrupts back to secure */
+    NVIC->ITNS[1] &= ~(0xFFF80000);
+    NVIC->ITNS[2] &= ~(0x7);
+
     /* Make sure that MPC and PPC are targeted to S state */
     NVIC_ClearTargetState(S_MPC_COMBINED_IRQn);
     NVIC_ClearTargetState(S_PPC_COMBINED_IRQn);
