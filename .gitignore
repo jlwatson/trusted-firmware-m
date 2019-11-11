@@ -11,3 +11,5 @@ build*/
 *.orig
 **/__pycache__
 *.pyc
+
+*.swp
