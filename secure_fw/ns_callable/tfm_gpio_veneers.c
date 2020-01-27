@@ -106,7 +106,7 @@ uint8_t tfm_gpio_interrupt_disable(uint8_t pin) {
 }
 
 __tfm_secure_gateway_attributes__
-uint8_t tfm_gpio_set(uint8_t pin) {
+uint8_t tfm_gpio_clear(uint8_t pin) {
     if (pin >= N_PINS) {
         return pin;
     }
@@ -116,7 +116,7 @@ uint8_t tfm_gpio_set(uint8_t pin) {
 }
 
 __tfm_secure_gateway_attributes__
-uint8_t tfm_gpio_clear(uint8_t pin) {
+uint8_t tfm_gpio_set(uint8_t pin) {
     if (pin >= N_PINS) {
         return pin;
     }
