@@ -105,7 +105,7 @@ def do_sign(args):
     img = image.Image.load(args.infile,
             version=next_version_number(args,
                                         version.decode_version("0"),
-                                        "lastVerNum.txt"),
+                                        "../../lastVerNum.txt"),
             header_size=args.header_size,
             included_header=args.included_header,
             pad=args.pad)
