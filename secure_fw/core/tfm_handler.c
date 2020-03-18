@@ -73,6 +73,47 @@ void SecureFault_Handler(void)
                    sizeof(tfm_fault_context));
     }
 
+    printf("\nSAU Dump\n");
+    printf("--------\n\n");
+
+    printf("\tCTRL: %x\n", SAU->CTRL);
+    printf("\t\tALLNS: %x\n", (SAU->CTRL & SAU_CTRL_ALLNS_Msk) >> SAU_CTRL_ALLNS_Pos);
+    printf("\t\tENABLE: %x\n", (SAU->CTRL & SAU_CTRL_ENABLE_Msk) >> SAU_CTRL_ENABLE_Pos);
+    printf("\n");
+
+    uint8_t n_regions = (SAU->TYPE & SAU_TYPE_SREGION_Msk) >> SAU_TYPE_SREGION_Pos;
+    printf("\tTYPE: %x\n", SAU->TYPE);
+    printf("\t\tSREGION: %x\n", n_regions);
+    printf("\n");
+
+    for (uint8_t i = 0; i < n_regions; i++) {
+        printf("\tRNR: %d\n", i);
+        SAU->RNR = i;
+
+        printf("\t\tRBAR: %x\n", SAU->RBAR);
+
+        printf("\t\tRLAR: %x\n", SAU->RLAR);
+        printf("\t\t\tLADDR: %x\n", SAU->RLAR & SAU_RLAR_LADDR_Msk);
+        printf("\t\t\tNSC: %x\n", (SAU->RLAR & SAU_RLAR_NSC_Msk) >> SAU_RLAR_NSC_Pos);
+        printf("\t\t\tENABLE: %x\n", (SAU->RLAR & SAU_RLAR_ENABLE_Msk) >> SAU_RLAR_ENABLE_Pos);
+
+        printf("\n");
+    }
+
+    printf("Secure Fault Status Register (SFSR)\n");
+    printf("-----------------------------------\n");
+
+    printf("\tLSERR: %x\n", (SAU->SFSR & SAU_SFSR_LSERR_Msk) >> SAU_SFSR_LSERR_Pos);
+    printf("\tSFARVALID: %x\n", (SAU->SFSR & SAU_SFSR_SFARVALID_Msk) >> SAU_SFSR_SFARVALID_Pos);
+    printf("\tLSPERR: %x\n", (SAU->SFSR & SAU_SFSR_LSPERR_Msk) >> SAU_SFSR_LSPERR_Pos);
+    printf("\tINVTRAN: %x\n", (SAU->SFSR & SAU_SFSR_INVTRAN_Msk) >> SAU_SFSR_INVTRAN_Pos);
+    printf("\tAUVIOL: %x\n", (SAU->SFSR & SAU_SFSR_AUVIOL_Msk) >> SAU_SFSR_AUVIOL_Pos);
+    printf("\tINVER: %x\n", (SAU->SFSR & SAU_SFSR_INVER_Msk) >> SAU_SFSR_INVER_Pos);
+    printf("\tINVIS: %x\n", (SAU->SFSR & SAU_SFSR_INVIS_Msk) >> SAU_SFSR_INVIS_Pos);
+    printf("\tINVEP: %x\n", (SAU->SFSR & SAU_SFSR_INVEP_Msk) >> SAU_SFSR_INVEP_Pos);
+
+    printf("\n");
+
     LOG_MSG("Oops... Secure fault!!! You're not going anywhere!");
     while (1) {
         ;
