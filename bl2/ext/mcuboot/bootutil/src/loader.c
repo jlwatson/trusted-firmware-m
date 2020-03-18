@@ -1654,6 +1654,8 @@ boot_copy_image_to_sram(int slot, struct image_header *hdr)
     if (rc != 0) {
         return BOOT_EFLASH;
     }
+    // XXX
+    img_sz = 0x100000;
 
     while (bytes_copied < img_sz) {
         sect_sz = boot_img_sector_size(&boot_data, slot, sect);
