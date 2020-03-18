@@ -50,7 +50,23 @@ uint8_t tfm_flash_write(uint32_t addr, uint32_t *buf, uint32_t len) {
     }
     while(FLASH_DEV_NAME.GetStatus().busy);
 
+    /*
+    printf("Sector (%x) contents before modification:\n", sector_addr);
+    for (int i = 0; i < 0x1000; i++) {
+        printf("%x ", sector_buffer[i]);
+    }
+    printf("\n\n");
+    */
+
     memcpy(&sector_buffer[sector_offset], buf, len);
+
+    /*
+    printf("Sector (%x) contents after modification of %d bytes at sector offset %x:\n", sector_addr, len, sector_offset);
+    for (int i = 0; i < 0x1000; i++) {
+        printf("%x ", sector_buffer[i]);
+    }
+    printf("\n\n");
+    */
 
     rc = FLASH_DEV_NAME.EraseSector(sector_addr);
     if (rc != 0) {
@@ -58,6 +74,20 @@ uint8_t tfm_flash_write(uint32_t addr, uint32_t *buf, uint32_t len) {
     }
     while(FLASH_DEV_NAME.GetStatus().busy);
 
-    return FLASH_DEV_NAME.ProgramData(sector_addr, sector_buffer, 0x1000); 
+    rc = FLASH_DEV_NAME.ProgramData(sector_addr, sector_buffer, 0x1000); 
+    while(FLASH_DEV_NAME.GetStatus().busy);
+
+    FLASH_DEV_NAME.ReadData(sector_addr, &sector_buffer, 0x1000);
+    while(FLASH_DEV_NAME.GetStatus().busy);
+
+    /*
+    printf("Sector (%x) contents after program:\n", sector_addr);
+    for (int i = 0; i < 0x1000; i++) {
+        printf("%x ", sector_buffer[i]);
+    }
+    printf("\n\n");
+    */
+
+    return rc;
 }
 
