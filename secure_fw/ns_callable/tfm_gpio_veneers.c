@@ -62,6 +62,30 @@ void GPIO_15_IRQHandler() { GPIO_Handler(15); }
 
 
 /* The following function was added by Ryan */
+__tfm_secure_gateway_attributes__
+uint32_t tfm_gpio_read_all(void) {
+    return gpio->data;
+}
+
+__tfm_secure_gateway_attributes__
+uint8_t tfm_gpio_write_all(uint32_t out) {
+    if (out > 0xFFFF) {
+        return 1;
+    }
+
+    gpio->dataout = out;
+    return 0;
+}
+
+__tfm_secure_gateway_attributes__
+uint8_t tfm_gpio_enable_outputs(uint32_t pins) {
+    if (pins > 0xFFFF) {
+        return 1;
+    }
+    
+    gpio->outenset |= pins;
+    return 0;
+}
 
 // reads the value at the given pin
 // if the pin is invalid, returns invalid pin number
