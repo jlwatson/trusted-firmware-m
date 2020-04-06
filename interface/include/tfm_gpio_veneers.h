@@ -8,6 +8,11 @@ extern "C" {
 #include <stdint.h>
 
 // Return 0 on success, non-zero on failure
+uint32_t tfm_gpio_read_all(void);				// added by Ryan
+uint8_t tfm_gpio_write_all(uint32_t out);		// added by Ryan
+uint8_t tfm_gpio_enable_outputs(uint32_t pins);	// added by Ryan
+uint8_t tfm_gpio_read(uint8_t pin);				// added by Ryan
+
 uint8_t tfm_gpio_enable_output(uint8_t pin);
 uint8_t tfm_gpio_set(uint8_t pin);
 uint8_t tfm_gpio_clear(uint8_t pin);
