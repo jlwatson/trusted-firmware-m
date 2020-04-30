@@ -105,6 +105,7 @@ void SecureFault_Handler(void)
 
     printf("\tLSERR: %x\n", (SAU->SFSR & SAU_SFSR_LSERR_Msk) >> SAU_SFSR_LSERR_Pos);
     printf("\tSFARVALID: %x\n", (SAU->SFSR & SAU_SFSR_SFARVALID_Msk) >> SAU_SFSR_SFARVALID_Pos);
+    printf("\t\tSFAR: %x\n", SAU->SFAR);
     printf("\tLSPERR: %x\n", (SAU->SFSR & SAU_SFSR_LSPERR_Msk) >> SAU_SFSR_LSPERR_Pos);
     printf("\tINVTRAN: %x\n", (SAU->SFSR & SAU_SFSR_INVTRAN_Msk) >> SAU_SFSR_INVTRAN_Pos);
     printf("\tAUVIOL: %x\n", (SAU->SFSR & SAU_SFSR_AUVIOL_Msk) >> SAU_SFSR_AUVIOL_Pos);
