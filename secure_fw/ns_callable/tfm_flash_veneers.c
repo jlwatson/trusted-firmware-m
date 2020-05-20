@@ -36,55 +36,112 @@ uint8_t tfm_flash_read(uint32_t addr, uint32_t *buf, uint32_t len) {
     return FLASH_DEV_NAME.ReadData(addr, buf, len);
 }
 
+
+// ----------------------
+
+typedef void __attribute__((cmse_nonsecure_call)) ns_next_cb(void);
+typedef void _write_next_cb(void);
+
+ns_next_cb *next_cb = NULL;
+_write_next_cb *_write_next = NULL;
+
+__tfm_secure_gateway_attributes__
+uint8_t tfm_flash_write_step() {
+    if (!_write_next) {
+        //LOG_MSG("!write next\n");
+        return 0;
+    }
+
+    if (!FLASH_DEV_NAME.GetStatus().busy) {
+        //LOG_MSG("not busy, calling next\n");
+        _write_next();
+    }
+    //LOG_MSG("return 1\n");
+    return 1;
+}
+
 #define SECTOR_SIZE 0x1000
 static uint8_t sector_buffer[SECTOR_SIZE];
 
-int32_t _write_single_sector(uint32_t addr, uint32_t *buf, uint32_t len) {
-    uint32_t sector_offset = addr % SECTOR_SIZE;
-    uint32_t sector_addr = addr - sector_offset;
+uint32_t overall_addr = 0x0;
+uint32_t *overall_buf = NULL;
+uint32_t overall_len = 0;
+uint32_t overall_written = 0;
 
-    uint32_t bytes_to_write = SECTOR_SIZE - sector_offset;
-    if (len < bytes_to_write) bytes_to_write = len;
+// single sector write vvv
+
+uint32_t write_addr = 0x0;
+uint32_t *write_buf = NULL;
+uint32_t write_len = 0;
+
+uint32_t write_sector_offset = 0;
+uint32_t write_sector_addr = 0x0;
+uint32_t write_bytes_to_write = 0;
+
+void _write_single_sector(uint32_t, uint32_t *, uint32_t);
+
+void _write_entry(void) {
+
+    if (overall_len == overall_written) {
+        overall_written = 0;
+        _write_next = NULL; 
+    } else {
+        _write_single_sector(
+                overall_addr + overall_written,
+                overall_buf + (overall_written / sizeof(uint32_t)),
+                overall_len - overall_written
+        );
+    }
+}
+
+void _write_program_sector(void) {
+    // XXX ignore errors for now
+    FLASH_DEV_NAME.ProgramData(write_sector_addr, sector_buffer, SECTOR_SIZE); 
+    overall_written += write_bytes_to_write;
+
+    _write_next = _write_entry;
+}
+
+void _write_erase_sector(void) {
+    memcpy(&sector_buffer[write_sector_offset], write_buf, write_bytes_to_write);
+
+    // XXX ignore errors for now
+    FLASH_DEV_NAME.EraseSector(write_sector_addr);
+    _write_next = _write_program_sector;
+}
+
+void _write_single_sector(uint32_t addr, uint32_t *buf, uint32_t len) {
+
+    write_addr = addr;
+    write_buf = buf;
+    write_len = len;
+
+    write_sector_offset = write_addr % SECTOR_SIZE;
+    write_sector_addr = write_addr - write_sector_offset;
+
+    write_bytes_to_write = SECTOR_SIZE - write_sector_offset;
+    if (write_len < write_bytes_to_write) write_bytes_to_write = write_len;
 
     // Read previous sector contents
-    int rc = FLASH_DEV_NAME.ReadData(sector_addr, &sector_buffer, SECTOR_SIZE);
-    if (rc != 0) {
-        return -rc;
-    }
-    while(FLASH_DEV_NAME.GetStatus().busy);
+    // XXX ignore errors for now 
+    //int rc = FLASH_DEV_NAME.ReadData(write_sector_addr, &write_sector_buffer, SECTOR_SIZE);
+    FLASH_DEV_NAME.ReadData(write_sector_addr, &sector_buffer, SECTOR_SIZE);
 
-    memcpy(&sector_buffer[sector_offset], buf, bytes_to_write);
-
-    rc = FLASH_DEV_NAME.EraseSector(sector_addr);
-    if (rc != 0) {
-        return -rc;
-    }
-    while(FLASH_DEV_NAME.GetStatus().busy);
-
-    rc = FLASH_DEV_NAME.ProgramData(sector_addr, sector_buffer, SECTOR_SIZE); 
-    if (rc != 0) {
-        return -rc;
-    }
-    while(FLASH_DEV_NAME.GetStatus().busy);
-
-    return bytes_to_write;
+    _write_next = _write_erase_sector;
 }
 
 __tfm_secure_gateway_attributes__
 uint8_t tfm_flash_write(uint32_t addr, uint32_t *buf, uint32_t len) {
 
-    while (len != 0) {
-        int32_t written = _write_single_sector(addr, buf, len);
-        if (written < 0) { // return error code
-            return (uint8_t) -written;
-        }
+    if (tfm_flash_is_busy() || _write_next != NULL) return -1; // write in progress
 
-        addr += written;
-        buf += written / sizeof(uint32_t);
-        len -= written;
-    }
+    overall_addr = addr;
+    overall_buf = buf;
+    overall_len = len;
 
+    _write_entry();
     return 0;
+
     /*
     uint32_t sector_offset = addr % 0x1000;
     uint32_t sector_addr = addr - sector_offset;
@@ -97,21 +154,21 @@ uint8_t tfm_flash_write(uint32_t addr, uint32_t *buf, uint32_t len) {
     while(FLASH_DEV_NAME.GetStatus().busy);
 
     / *
-    printf("Sector (%x) contents before modification:\n", sector_addr);
+    LOG_MSG("Sector (%x) contents before modification:\n", sector_addr);
     for (int i = 0; i < 0x1000; i++) {
-        printf("%x ", sector_buffer[i]);
+        LOG_MSG("%x ", sector_buffer[i]);
     }
-    printf("\n\n");
+    LOG_MSG("\n\n");
     * /
 
     memcpy(&sector_buffer[sector_offset], buf, len);
 
     / *
-    printf("Sector (%x) contents after modification of %d bytes at sector offset %x:\n", sector_addr, len, sector_offset);
+    LOG_MSG("Sector (%x) contents after modification of %d bytes at sector offset %x:\n", sector_addr, len, sector_offset);
     for (int i = 0; i < 0x1000; i++) {
-        printf("%x ", sector_buffer[i]);
+        LOG_MSG("%x ", sector_buffer[i]);
     }
-    printf("\n\n");
+    LOG_MSG("\n\n");
     * /
 
     rc = FLASH_DEV_NAME.EraseSector(sector_addr);
@@ -127,11 +184,11 @@ uint8_t tfm_flash_write(uint32_t addr, uint32_t *buf, uint32_t len) {
     while(FLASH_DEV_NAME.GetStatus().busy);
 
     / *
-    printf("Sector (%x) contents after program:\n", sector_addr);
+    LOG_MSG("Sector (%x) contents after program:\n", sector_addr);
     for (int i = 0; i < 0x1000; i++) {
-        printf("%x ", sector_buffer[i]);
+        LOG_MSG("%x ", sector_buffer[i]);
     }
-    printf("\n\n");
+    LOG_MSG("\n\n");
     * /
     */
 }
