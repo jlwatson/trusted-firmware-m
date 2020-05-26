@@ -33,7 +33,7 @@ uint32_t output_enabled = 0;
 
 typedef void __attribute__((cmse_nonsecure_call)) ns_interrupt_cb(void);
 
-typedef uint8_t __attribute__((cmse_nonsecure_call)) ns_update_trigger(uint8_t pin);
+typedef uint8_t __attribute__((cmse_nonsecure_call)) ns_update_trigger(uint32_t callback_addr);
 typedef void __attribute__((cmse_nonsecure_call)) ns_update_apply(void);
 
 static gpio_t *gpio = (gpio_t *) MUSCA_GPIO_S_BASE;
@@ -48,7 +48,7 @@ void GPIO_Handler(uint8_t pin) {
 
     if (should_trigger_update &&
         apply_update &&
-        should_trigger_update(pin)) {
+        should_trigger_update((uint32_t) callbacks[pin])) {
         apply_update();
     }
 
